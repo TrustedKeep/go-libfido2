@@ -93,12 +93,14 @@ type User struct {
 type Attestation struct {
 	ClientDataHash []byte
 	AuthData       []byte
+	AuthDataRaw    []byte
 	CredentialID   []byte
 	CredentialType CredentialType
 	PubKey         []byte
 	Cert           []byte
 	Sig            []byte
 	Format         string
+	AttStmt        []byte
 }
 
 // Credential ...
@@ -514,6 +516,10 @@ func attestation(cCred *C.fido_cred_t) (*Attestation, error) {
 	cAuthDataPtr := C.fido_cred_authdata_ptr(cCred)
 	authData := C.GoBytes(unsafe.Pointer(cAuthDataPtr), C.int(cAuthDataLen))
 
+	cAuthDataRawLen := C.fido_cred_authdata_raw_len(cCred)
+	cAuthDataRawPtr := C.fido_cred_authdata_raw_ptr(cCred)
+	authDataRaw := C.GoBytes(unsafe.Pointer(cAuthDataRawPtr), C.int(cAuthDataRawLen))
+
 	cClientDataHashLen := C.fido_cred_clientdata_hash_len(cCred)
 	cClientDataHashPtr := C.fido_cred_clientdata_hash_ptr(cCred)
 	clientDataHashOut := C.GoBytes(unsafe.Pointer(cClientDataHashPtr), C.int(cClientDataHashLen))
@@ -537,8 +543,13 @@ func attestation(cCred *C.fido_cred_t) (*Attestation, error) {
 	cSigPtr := C.fido_cred_sig_ptr(cCred)
 	sig := C.GoBytes(unsafe.Pointer(cSigPtr), C.int(cSigLen))
 
+	cAttStmtLen := C.fido_cred_attstmt_len(cCred)
+	cAttStmtPtr := C.fido_cred_attstmt_ptr(cCred)
+	attStmt := C.GoBytes(unsafe.Pointer(cAttStmtPtr), C.int(cAttStmtLen))
+
 	at := &Attestation{
 		AuthData:       authData,
+		AuthDataRaw:    authDataRaw,
 		ClientDataHash: clientDataHashOut,
 		CredentialID:   id,
 		CredentialType: typOut,
@@ -546,6 +557,7 @@ func attestation(cCred *C.fido_cred_t) (*Attestation, error) {
 		Cert:           cert,
 		Sig:            sig,
 		Format:         C.GoString(cFormat),
+		AttStmt:        attStmt,
 	}
 	return at, nil
 }
